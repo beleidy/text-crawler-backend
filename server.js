@@ -12,8 +12,8 @@ const REDIS_PORT = 6379;
 
 (async function main() {
   // Connect to Redis
-  const client = redis.createClient();
-  client.on("error", function(err) {
+  const redisClient = redis.createClient();
+  redisClient.on("error", function(err) {
     console.log("Redis Client Error " + err);
   });
 
