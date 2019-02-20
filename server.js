@@ -31,7 +31,7 @@ const ES_HOST = `localhost:${ES_PORT}`;
     persistCache: true,
     cache,
     depthPriority: false,
-    maxDepth: 3,
+    maxDepth: 1,
     waituntil: ["networkidle0", "domcontentloaded", "load"],
     evaluatePage: () => document.body.innerText
   });
@@ -43,6 +43,7 @@ const ES_HOST = `localhost:${ES_PORT}`;
     host: ES_HOST,
     log: "trace"
   });
+
   // Check ES is alive
   try {
     await esClient.ping({ requestTimeout: 30000 });
@@ -67,22 +68,39 @@ const ES_HOST = `localhost:${ES_PORT}`;
     }
   });
 
-  console.log(await checkIfSiteExists("site1"));
+  const uriToFetch = "uri1";
 
   //
   io.on("connection", socket => {
-    socket.on("GetSiteText", fn => {
-      // 1. Check with elastic search if it exists
-      // 2. If it does, retrieve text and send back to fn
-      // 3. If it doesn't add it to the crawler queue
-      // 4. Backoff and check with ES again
+    socket.on("GetSiteText", uriToFetch => {
+      return (await getSiteText(uriToFetch));
     });
   });
 
-  async function checkIfSiteExists(siteAddress) {
+  async function getSiteText(uriToFetch) {
+    let siteText = await getSiteTextFromES(uriToFetch);
+    if (!siteText) crawler.queue(uriToFetch);
+
+    for (const tries = 1; tries < 3; n++) {
+      if (!siteText) {
+        await sleep(1000 * tries + Math.random() * 500);
+        siteText = await getSiteTextFromES(uriToFetch);
+      } else {
+        break;
+      }
+    }
+
+    if (!siteText) {
+      return false;
+    } else {
+      return siteText;
+    }
+  }
+
+  async function getSiteTextFromES(uriToFetch) {
     const response = await esClient.search({
       index: "sites",
-      q: `address: ${siteAddress}`
+      q: `uri: ${uriToFetch}`
     });
     if (response.hits.total == 0) {
       return false;
@@ -91,3 +109,7 @@ const ES_HOST = `localhost:${ES_PORT}`;
     }
   }
 })();
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
