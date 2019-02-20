@@ -5,13 +5,16 @@ const RedisCache = require("headless-chrome-crawler/cache/redis");
 
 const express = require("express");
 const app = express();
-const http = require("http").Server(app);
-const io = require("socket.io")(http);
+const server = require("http").Server(app);
+const io = require("socket.io")(server);
 
+const SERVER_PORT = 8000;
 const REDIS_HOST = "localhost";
 const REDIS_PORT = 6379;
 const ES_PORT = 9200;
 const ES_HOST = `localhost:${ES_PORT}`;
+
+server.listen(SERVER_PORT);
 
 (async function main() {
   // Connect to Redis
@@ -72,8 +75,9 @@ const ES_HOST = `localhost:${ES_PORT}`;
 
   //
   io.on("connection", socket => {
-    socket.on("GetSiteText", uriToFetch => {
-      return (await getSiteText(uriToFetch));
+    socket.on("GetSiteText", async uriToFetch => {
+      const text = await getSiteText(uriToFetch);
+      return text;
     });
   });
 
