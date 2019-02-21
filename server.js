@@ -17,12 +17,6 @@ const ES_HOST = `localhost:${ES_PORT}`;
 server.listen(SERVER_PORT);
 
 (async function main() {
-  // Connect to Redis
-  const redisClient = redis.createClient();
-  redisClient.on("error", function(err) {
-    console.log("Redis Client Error " + err);
-  });
-
   // Create inactive crawler connected to Redis
   const cache = new RedisCache({
     host: REDIS_HOST,
@@ -71,8 +65,6 @@ server.listen(SERVER_PORT);
     }
   });
 
-  const uriToFetch = "uri1";
-
   //
   io.on("connection", socket => {
     socket.on("GetSiteText", async uriToFetch => {
@@ -83,11 +75,16 @@ server.listen(SERVER_PORT);
 
   async function getSiteText(uriToFetch) {
     let siteText = await getSiteTextFromES(uriToFetch);
-    if (!siteText) crawler.queue(uriToFetch);
+    if (!siteText) {
+      crawler.queue([
+        { url: uriToFetch, allowedDomins: [new URL(uriToFetch).hostname] }
+      ]);
+    }
 
-    for (const tries = 1; tries < 3; n++) {
+    for (let tries = 1; tries < 3; tries++) {
       if (!siteText) {
-        await sleep(1000 * tries + Math.random() * 500);
+        await sleep(3000 * tries + Math.random() * 500);
+        console.log("Trying again");
         siteText = await getSiteTextFromES(uriToFetch);
       } else {
         break;
@@ -104,7 +101,7 @@ server.listen(SERVER_PORT);
   async function getSiteTextFromES(uriToFetch) {
     const response = await esClient.search({
       index: "sites",
-      q: `uri: ${uriToFetch}`
+      q: `uri: ${sanitizeESQuery(uriToFetch)}`
     });
     if (response.hits.total == 0) {
       return false;
@@ -116,4 +113,10 @@ server.listen(SERVER_PORT);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function sanitizeESQuery(query) {
+  return query
+    .replace(/[<>]/g, ``)
+    .replace(/([+-=&|><!(){}[\]^"~*?:\\/])/g, "\\$1");
 }
