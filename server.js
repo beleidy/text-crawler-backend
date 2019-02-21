@@ -67,9 +67,9 @@ server.listen(SERVER_PORT);
 
   //
   io.on("connection", socket => {
-    socket.on("GetSiteText", async uriToFetch => {
+    socket.on("GetSiteText", async (uriToFetch, fn) => {
       const text = await getSiteText(uriToFetch);
-      return text;
+      fn(text);
     });
   });
 
@@ -84,7 +84,7 @@ server.listen(SERVER_PORT);
     for (let tries = 1; tries < 3; tries++) {
       if (!siteText) {
         await sleep(3000 * tries + Math.random() * 500);
-        console.log("Trying again");
+        console.log("Trying again ", tries);
         siteText = await getSiteTextFromES(uriToFetch);
       } else {
         break;
