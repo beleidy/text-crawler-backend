@@ -68,8 +68,8 @@ server.listen(SERVER_PORT);
   //
   io.on("connection", socket => {
     socket.on("GetSiteText", async (uriToFetch, fn) => {
-      const text = await getSiteText(uriToFetch);
-      fn(text);
+      const text = await getSiteText(new URL(uriToFetch));
+      if (text) fn(text);
     });
   });
 
@@ -77,7 +77,10 @@ server.listen(SERVER_PORT);
     let siteText = await getSiteTextFromES(uriToFetch);
     if (!siteText) {
       crawler.queue([
-        { url: uriToFetch, allowedDomins: [new URL(uriToFetch).hostname] }
+        {
+          url: uriToFetch.toString().replace("http://", "https://"),
+          allowedDomins: [uriToFetch.hostname]
+        }
       ]);
     }
 
@@ -101,7 +104,14 @@ server.listen(SERVER_PORT);
   async function getSiteTextFromES(uriToFetch) {
     const response = await esClient.search({
       index: "sites",
-      q: `uri: ${sanitizeESQuery(uriToFetch)}`
+      type: "_doc",
+      body: {
+        query: {
+          term: {
+            uri: uriToFetch.toString().replace("http://", "https://")
+          }
+        }
+      }
     });
     if (response.hits.total == 0) {
       return false;
@@ -113,10 +123,4 @@ server.listen(SERVER_PORT);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function sanitizeESQuery(query) {
-  return query
-    .replace(/[<>]/g, ``)
-    .replace(/([+-=&|><!(){}[\]^"~*?:\\/])/g, "\\$1");
 }
