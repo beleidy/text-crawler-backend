@@ -17,7 +17,7 @@ spec:
           image: eu.gcr.io/$PROJECT_ID/$APP_NAME@$SHA256
           envFrom:
             - configMapRef:
-              name: text-crawler-config
+                name: text-crawler-config
           resources:
             requests:
               cpu: "25m"
