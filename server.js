@@ -10,8 +10,8 @@ const io = require("socket.io")(server);
 
 const SERVER_PORT = 8000;
 const REDIS_HOST = process.env.REDIS_HOST || "localhost";
-const REDIS_PORT = process.env.REDIS_PORT || 6379;
-const ES_PORT = process.env.ES_PORT || 9200;
+const REDIS_PORT = parseInt(process.env.REDIS_PORT) || 6379;
+const ES_PORT = parseInt(process.env.ES_PORT) || 9200;
 const ES_HOST = `${process.env.ES_HOST || "localhost"}:${ES_PORT}`;
 
 server.listen(SERVER_PORT);
