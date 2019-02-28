@@ -20,6 +20,8 @@ app.get("/", function(req, res) {
   res.json({ status: "UP" });
 });
 
+app.listen(3000);
+
 (async function main() {
   // Create inactive crawler connected to Redis
   const cache = new RedisCache({
