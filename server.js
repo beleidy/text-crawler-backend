@@ -16,14 +16,6 @@ const ES_HOST = `${process.env.ES_HOST || "localhost"}:${ES_PORT}`;
 
 server.listen(SERVER_PORT);
 
-app.get("/", function(req, res) {
-  res.json({ status: "UP" });
-});
-
-app.post("/", function(req, res) {
-  res.json({ status: "UP" });
-});
-
 (async function main() {
   // Create inactive crawler connected to Redis
   const cache = new RedisCache({
