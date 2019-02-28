@@ -20,6 +20,10 @@ app.get("/", function(req, res) {
   res.json({ status: "UP" });
 });
 
+app.post("/", function(req, res) {
+  res.json({ status: "UP" });
+});
+
 (async function main() {
   // Create inactive crawler connected to Redis
   const cache = new RedisCache({
