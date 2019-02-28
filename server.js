@@ -6,9 +6,7 @@ const RedisCache = require("headless-chrome-crawler/cache/redis");
 const express = require("express");
 const app = express();
 const server = require("http").Server(app);
-const io = require("socket.io")(server).origins(
-  "https://crawler.amr.elbeleidy.me:80"
-);
+const io = require("socket.io")(server);
 
 const SERVER_PORT = 8000;
 const REDIS_HOST = process.env.REDIS_HOST || "localhost";
