@@ -14,7 +14,7 @@ const REDIS_PORT = parseInt(process.env.REDIS_PORT) || 6379;
 const ES_PORT = parseInt(process.env.ES_PORT) || 9200;
 const ES_HOST = `${process.env.ES_HOST || "localhost"}:${ES_PORT}`;
 
-io.origins("*:*");
+io.origins("https://crawler.amr.elbeleidy.me:80");
 server.listen(SERVER_PORT);
 
 (async function main() {
