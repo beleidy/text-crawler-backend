@@ -3,7 +3,7 @@
 Text Crawler is an app that returns the text of any site you give it. It is intended as an aid for natural language processing practioners who can programatically collect data from the web. With this in mind, more features will be developed.
 
 ## App structure
-![text-crawler-architecture](/uploads/6578d22b9b6163c8950c0974c7a982d3/Screenshot_from_2019-04-16_15-46-00.png)
+![text-crawler-architecture](https://gitlab.com/text-crawler/text-crawler-backend/uploads/487804423fbf1b0c31e19995bd5d75b5/text-crawler-architecture.png)
 
 The app has 5 parts. 
 
