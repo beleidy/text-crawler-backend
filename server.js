@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io")(server);
+const retry = require("async-retry");
 
 const makeCrawler = require("./crawler");
 const client = require("./elasticsearch");
@@ -13,80 +14,86 @@ server.listen(SERVER_PORT);
 
 (async function main() {
   // Check ES is alive
-  await client.ping();
-
   // Create sites index if it doesn't exist
-  const indexExists = await client.indices.exists({ index: "sites" });
-  if (!indexExists) {
-    await client.indices.create({
-      index: "sites",
-      body: {
-        properties: {
-          domain: { type: "keyword" },
-          uri: { type: "keyword" },
-          siteText: { type: "text" },
-          lastUpdated: { type: "date" }
-        }
-      }
-    });
-  }
-
-  const crawler = await makeCrawler();
-
-  io.on("connection", socket => {
-    socket.on("GetSiteText", async (uriToFetch, fn) => {
-      const text = await getSiteText(new URL(uriToFetch));
-      if (text) fn(text);
-    });
-  });
-
-  async function getSiteText(uriToFetch) {
-    let siteText = await getSiteTextFromES(uriToFetch);
-    if (!siteText) {
-      crawler.queue([
-        {
-          url: uriToFetch.toString().replace("http://", "https://"),
-          allowedDomins: [uriToFetch.hostname]
-        }
-      ]);
-    }
-
-    for (let tries = 1; tries < 3; tries++) {
-      if (!siteText) {
-        await sleep(3000 * tries + Math.random() * 500);
-        console.log("Trying again ", tries);
-        siteText = await getSiteTextFromES(uriToFetch);
-      } else {
-        break;
-      }
-    }
-
-    if (!siteText) {
-      return false;
-    } else {
-      return siteText;
-    }
-  }
-
-  async function getSiteTextFromES(uriToFetch) {
-    const { body, statusCode, headers, warnings } = await client.search({
-      index: "sites",
-      body: {
-        query: {
-          term: {
-            uri: uriToFetch.toString().replace("http://", "https://")
+  try {
+    await client.ping();
+    const indexExists = await client.indices.exists({ index: "sites" });
+    if (!indexExists.body) {
+      await client.indices.create({
+        index: "sites",
+        body: {
+          mappings: {
+            properties: {
+              domain: { type: "keyword" },
+              uri: { type: "keyword" },
+              siteText: { type: "text" },
+              lastUpdated: { type: "date" }
+            }
           }
         }
+      });
+    }
+  } catch (e) {
+    console.log(
+      "Could not find or create index",
+      util.inspect(e, { depth: null, color: true })
+    );
+  }
+
+  // Create crawler instance
+  const crawler = await makeCrawler();
+
+  // Handle incoming socket connection
+  io.on("connection", socket => {
+    socket.on("GetSiteText", async (uriToFetch, fn) => {
+      console.log("received site address to get text");
+
+      async function getSiteText(uriToFetch) {
+        console.log("Sending search request to db");
+        const { body } = await client.search({
+          index: "sites",
+          body: {
+            query: {
+              term: {
+                uri: uriToFetch.toString().replace("http://", "https://")
+              }
+            }
+          }
+        });
+        console.log("Received search response from db");
+        if (body.hits.total.value == 0) {
+          throw new Error("No search results returned");
+        } else {
+          return body.hits.hits;
+        }
+      }
+
+      try {
+        await retry(
+          async (bail, attempt) => {
+            console.log("Attempt number: ", attempt);
+            if (attempt == 2) {
+              await crawler.queue([
+                {
+                  url: uriToFetch.toString().replace("http://", "https://"),
+                  allowedDomins: [uriToFetch.hostname]
+                }
+              ]);
+            }
+            const text = await getSiteText(new URL(uriToFetch));
+            fn(text);
+          },
+          {
+            retries: 5
+          }
+        );
+      } catch (e) {
+        if (e.message === "No search results returned") {
+          console.log("Crawler not getting site in time");
+        } else {
+          console.log("Unable to search database");
+        }
       }
     });
-    if (body.hits.total.value == 0) {
-      return false;
-    } else {
-      return body.hits.hits;
-    }
-  }
+  });
 })();
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
