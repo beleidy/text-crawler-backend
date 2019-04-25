@@ -31,7 +31,7 @@ server.listen(SERVER_PORT);
     });
   }
 
-  const crawler = makeCrawler();
+  const crawler = await makeCrawler();
 
   io.on("connection", socket => {
     socket.on("GetSiteText", async (uriToFetch, fn) => {
