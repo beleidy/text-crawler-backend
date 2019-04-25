@@ -19,9 +19,9 @@ function log(event, err, req) {
   req && console.log(event, " Request: ", util.inspect(req, inspectOptions));
 }
 
-client.on("request", (err, req) => log("request", err, req));
-client.on("response", (err, req) => log("response", err, req));
-client.on("sniff", (err, req) => log("sniff", err, req));
-client.on("resurrect", (err, req) => log("resurrect", err, req));
+// client.on("request", (err, req) => log("request", err, req));
+// client.on("response", (err, req) => log("response", err, req));
+// client.on("sniff", (err, req) => log("sniff", err, req));
+// client.on("resurrect", (err, req) => log("resurrect", err, req));
 
 module.exports = client;
