@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const elasticsearch = require("elasticsearch");
 const redis = require("redis");
 const HCCrawler = require("headless-chrome-crawler");
@@ -8,11 +10,12 @@ const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io")(server);
 
-const SERVER_PORT = 8000;
-const REDIS_HOST = process.env.REDIS_HOST || "localhost";
-const REDIS_PORT = parseInt(process.env.REDIS_PORT) || 6379;
-const ES_PORT = parseInt(process.env.ES_PORT) || 9200;
-const ES_HOST = `${process.env.ES_HOST || "localhost"}:${ES_PORT}`;
+const RESET_CRAWLING_CACHE = process.env.RESET_CRAWLING_CACHE;
+const SERVER_PORT = process.env.SERVER_PORT;
+const REDIS_HOST = process.env.REDIS_HOST;
+const REDIS_PORT = parseInt(process.env.REDIS_PORT);
+const ES_PORT = parseInt(process.env.ES_PORT);
+const ES_HOST = `${process.env.ES_HOST}:${ES_PORT}`;
 
 server.listen(SERVER_PORT);
 
@@ -32,7 +35,7 @@ server.listen(SERVER_PORT);
     waituntil: ["networkidle0", "domcontentloaded", "load"],
     evaluatePage: () => document.body.innerText
   });
-  crawler.clearCache();
+  !!RESET_CRAWLING_CACHE && crawler.clearCache();
   crawler.pause();
 
   // Create ES client
