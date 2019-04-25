@@ -9,6 +9,7 @@
   "author": "Amr Elbeleidy",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^7.0.0",
     "elasticsearch": "^15.4.1",
     "express": "^4.16.4",
     "headless-chrome-crawler": "^1.8.0",
