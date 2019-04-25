@@ -1,74 +1,38 @@
 require("dotenv").config();
-
-const elasticsearch = require("elasticsearch");
-const redis = require("redis");
-const HCCrawler = require("headless-chrome-crawler");
-const RedisCache = require("headless-chrome-crawler/cache/redis");
-
+const util = require("util");
 const express = require("express");
 const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io")(server);
 
-const RESET_CRAWLING_CACHE = process.env.RESET_CRAWLING_CACHE;
-const SERVER_PORT = process.env.SERVER_PORT;
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PORT = parseInt(process.env.REDIS_PORT);
-const ES_PORT = parseInt(process.env.ES_PORT);
-const ES_HOST = `${process.env.ES_HOST}:${ES_PORT}`;
+const makeCrawler = require("./crawler");
+const client = require("./elasticsearch");
 
+const SERVER_PORT = process.env.SERVER_PORT;
 server.listen(SERVER_PORT);
 
 (async function main() {
-  // Create inactive crawler connected to Redis
-  const cache = new RedisCache({
-    host: REDIS_HOST,
-    port: REDIS_PORT
-  });
-
-  const crawler = await HCCrawler.launch({
-    args: ["--no-sandbox"],
-    persistCache: true,
-    cache,
-    depthPriority: false,
-    maxDepth: 1,
-    waituntil: ["networkidle0", "domcontentloaded", "load"],
-    evaluatePage: () => document.body.innerText
-  });
-  !!RESET_CRAWLING_CACHE && crawler.clearCache();
-  crawler.pause();
-
-  // Create ES client
-  const esClient = new elasticsearch.Client({
-    host: ES_HOST,
-    log: "trace"
-  });
-
   // Check ES is alive
-  try {
-    await esClient.ping({ requestTimeout: 30000 });
-  } catch (err) {
-    console.error("ES error: ", err);
+  await client.ping();
+
+  // Create sites index if it doesn't exist
+  const indexExists = await client.indices.exists({ index: "sites" });
+  if (!indexExists) {
+    await client.indices.create({
+      index: "sites",
+      body: {
+        properties: {
+          domain: { type: "keyword" },
+          uri: { type: "keyword" },
+          siteText: { type: "text" },
+          lastUpdated: { type: "date" }
+        }
+      }
+    });
   }
 
-  const indexExists = await esClient.indices.exists({ index: "sites" });
-  if (!indexExists) await esClient.indices.create({ index: "sites" });
+  const crawler = await makeCrawler();
 
-  await esClient.indices.putMapping({
-    index: "sites",
-    type: "_doc",
-    updateAllTypes: true,
-    body: {
-      properties: {
-        domain: { type: "keyword" },
-        uri: { type: "keyword" },
-        siteText: { type: "text" },
-        lastUpdated: { type: "date" }
-      }
-    }
-  });
-
-  //
   io.on("connection", socket => {
     socket.on("GetSiteText", async (uriToFetch, fn) => {
       const text = await getSiteText(new URL(uriToFetch));
@@ -105,9 +69,8 @@ server.listen(SERVER_PORT);
   }
 
   async function getSiteTextFromES(uriToFetch) {
-    const response = await esClient.search({
+    const { body, statusCode, headers, warnings } = await client.search({
       index: "sites",
-      type: "_doc",
       body: {
         query: {
           term: {
@@ -116,10 +79,10 @@ server.listen(SERVER_PORT);
         }
       }
     });
-    if (response.hits.total == 0) {
+    if (body.hits.total.value == 0) {
       return false;
     } else {
-      return response.hits.hits;
+      return body.hits.hits;
     }
   }
 })();
