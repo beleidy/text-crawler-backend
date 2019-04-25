@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const elasticsearch = require("elasticsearch");
 const redis = require("redis");
 const HCCrawler = require("headless-chrome-crawler");
