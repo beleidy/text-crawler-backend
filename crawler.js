@@ -21,7 +21,7 @@ async function makeCrawler() {
     waituntil: ["networkidle0", "domcontentloaded", "load"],
     evaluatePage: () => document.body.innerText
   });
-  !!RESET_CRAWLING_CACHE && crawler.clearCache();
+  !!parseInt(RESET_CRAWLING_CACHE) && crawler.clearCache();
   crawler.pause();
   return crawler;
 }
