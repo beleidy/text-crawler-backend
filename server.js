@@ -10,6 +10,7 @@ const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io")(server);
 
+const RESET_CRAWLING_CACHE = process.env.RESET_CRAWLING_CACHE;
 const SERVER_PORT = process.env.SERVER_PORT;
 const REDIS_HOST = process.env.REDIS_HOST;
 const REDIS_PORT = parseInt(process.env.REDIS_PORT);
@@ -34,7 +35,7 @@ server.listen(SERVER_PORT);
     waituntil: ["networkidle0", "domcontentloaded", "load"],
     evaluatePage: () => document.body.innerText
   });
-  crawler.clearCache();
+  !!RESET_CRAWLING_CACHE && crawler.clearCache();
   crawler.pause();
 
   // Create ES client
