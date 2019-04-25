@@ -79,6 +79,6 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
-.env*
 !.env.example
+.env*
 
