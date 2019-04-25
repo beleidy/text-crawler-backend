@@ -12,9 +12,10 @@ const SERVER_PORT = process.env.SERVER_PORT;
 server.listen(SERVER_PORT);
 
 (async function main() {
+  // Check ES is alive
   await client.ping();
 
-  // Create index if it doesn't exist
+  // Create sites index if it doesn't exist
   const indexExists = await client.indices.exists({ index: "sites" });
   if (!indexExists) {
     await client.indices.create({
