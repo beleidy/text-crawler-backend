@@ -1,3 +1,6 @@
 *
 !package*.json
 !server.js
+!crawler.js
+!elasticsearch.js
+!handleError.js
