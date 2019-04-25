@@ -1,4 +1,5 @@
 require("dotenv").config();
+const util = require("util");
 const express = require("express");
 const app = express();
 const server = require("http").Server(app);
@@ -67,7 +68,7 @@ server.listen(SERVER_PORT);
   }
 
   async function getSiteTextFromES(uriToFetch) {
-    const response = await client.search({
+    const { body, statusCode, headers, warnings } = await client.search({
       index: "sites",
       type: "_doc",
       body: {
@@ -78,10 +79,16 @@ server.listen(SERVER_PORT);
         }
       }
     });
-    if (response.hits.total == 0) {
+    console.log(
+      util.inspect(body, { depth: null }),
+      statusCode,
+      headers,
+      warnings
+    );
+    if (body.hits.total.value == 0) {
       return false;
     } else {
-      return response.hits.hits;
+      return body.hits.hits;
     }
   }
 })();
