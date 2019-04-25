@@ -11,19 +11,13 @@ const SERVER_PORT = process.env.SERVER_PORT;
 server.listen(SERVER_PORT);
 
 (async function main() {
-  const crawler = makeCrawler();
-
   await client.ping();
 
   // Create index if it doesn't exist
   const indexExists = await client.indices.exists({ index: "sites" });
-  if (!indexExists) await client.indices.create({ index: "sites" });
-
-  try {
-    await client.indices.putMapping({
+  if (!indexExists) {
+    await client.indices.create({
       index: "sites",
-      type: "_doc",
-      includeTypeName: true,
       body: {
         properties: {
           domain: { type: "keyword" },
@@ -33,11 +27,10 @@ server.listen(SERVER_PORT);
         }
       }
     });
-  } catch (err) {
-    console.log(err);
   }
 
-  //
+  const crawler = makeCrawler();
+
   io.on("connection", socket => {
     socket.on("GetSiteText", async (uriToFetch, fn) => {
       const text = await getSiteText(new URL(uriToFetch));
