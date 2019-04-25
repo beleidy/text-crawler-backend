@@ -70,7 +70,6 @@ server.listen(SERVER_PORT);
   async function getSiteTextFromES(uriToFetch) {
     const { body, statusCode, headers, warnings } = await client.search({
       index: "sites",
-      type: "_doc",
       body: {
         query: {
           term: {
@@ -79,12 +78,6 @@ server.listen(SERVER_PORT);
         }
       }
     });
-    console.log(
-      util.inspect(body, { depth: null }),
-      statusCode,
-      headers,
-      warnings
-    );
     if (body.hits.total.value == 0) {
       return false;
     } else {
